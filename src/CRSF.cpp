@@ -125,12 +125,26 @@ bool ICACHE_RAM_ATTR CRSF::ProcessPacket()
 
     const uint8_t packetType = CRSF::inBuffer.asRCPacket_t.header.type;
 
-    if (packetType == CRSF_FRAMETYPE_RC_CHANNELS_PACKED)
+    // usbSerial.print("I");
+
+    if (packetType == CRSF_FRAMETYPE_ELRS_RC_DB)
     {
+        // usbSerial.print("D");
+        CRSF::RCdataLastRecv = micros();
+        GetChannelDataInDB();
+        (RCdataCallback)(); // run new RC data callback
+        return true;
+
+    } else if (packetType == CRSF_FRAMETYPE_RC_CHANNELS_PACKED) {
+
+        // usbSerial.print("P");
+
         CRSF::RCdataLastRecv = micros();
         GetChannelDataIn();
         (RCdataCallback)(); // run new RC data callback
         return true;
+    } else {
+        // usbSerial.printf("%d ", packetType);
     }
     return false;
 }
@@ -144,3 +158,14 @@ void ICACHE_RAM_ATTR CRSF::GetChannelDataIn() // data is packed as 11 bits per c
     ChannelDataIn[2] = (rcChannels->ch2);
     ChannelDataIn[3] = (rcChannels->ch3);
 }
+
+void ICACHE_RAM_ATTR CRSF::GetChannelDataInDB() 
+{
+    const volatile crsf_elrs_channels_DB_t *rcChannels = &CRSF::inBuffer.asRCPacket_t.channelsDB;
+    ChannelDataIn[0] = (rcChannels->chan0) >> 1;
+    ChannelDataIn[1] = (rcChannels->chan1) >> 1;
+    ChannelDataIn[2] = (rcChannels->chan2) >> 1;
+    ChannelDataIn[3] = (rcChannels->chan3) >> 1;
+
+}
+

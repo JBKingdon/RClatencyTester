@@ -23,7 +23,7 @@ GHST ghst(Serial);
 #endif
 
 #ifdef USE_CRSF
-#include "crsf.h"
+#include "CRSF.h"
 CRSF crsf(Serial);
 #endif
 

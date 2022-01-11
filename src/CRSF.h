@@ -5,9 +5,13 @@
 #include "HardwareSerial.h"
 //#include "../../src/targets.h"
 
+#undef ICACHE_RAM_ATTR
+#define ICACHE_RAM_ATTR IRAM_ATTR
+
 #define PACKED __attribute__((packed))
 
-#define CRSF_RX_BAUDRATE 420000
+// #define CRSF_RX_BAUDRATE 420000
+#define CRSF_RX_BAUDRATE 921600
 #define CRSF_OPENTX_FAST_BAUDRATE 400000
 #define CRSF_OPENTX_SLOW_BAUDRATE 115200 // Used for QX7 not supporting 400kbps
 #define CRSF_NUM_CHANNELS 16
@@ -80,6 +84,10 @@ typedef enum
     CRSF_FRAMETYPE_OPENTX_SYNC = 0x10,
     CRSF_FRAMETYPE_RADIO_ID = 0x3A,
     CRSF_FRAMETYPE_RC_CHANNELS_PACKED = 0x16,
+
+    CRSF_FRAMETYPE_ELRS_RC_DB        = 0x19,
+
+
     CRSF_FRAMETYPE_ATTITUDE = 0x1E,
     CRSF_FRAMETYPE_FLIGHT_MODE = 0x21,
     // Extended Header Frames, range: 0x28 to 0x96
@@ -179,6 +187,30 @@ typedef struct crsf_channels_s
     unsigned ch15 : 11;
 } PACKED crsf_channels_t;
 
+// packet for initial dual band format data
+// 8 x 12 bit channels
+// 8 x  2 bit switches
+typedef struct crsf_elrs_channels_DB_s {
+    // 112 bits of data (12 bits per channel * 8 channels + 2 bits per switch * 8 switches) = 14 bytes.
+    unsigned int chan0  : 12;
+    unsigned int chan1  : 12;
+    unsigned int chan2  : 12;
+    unsigned int chan3  : 12;
+    unsigned int chan4  : 12;
+    unsigned int chan5  : 12;
+    unsigned int chan6  : 12;
+    unsigned int chan7  : 12;    
+    unsigned int chan8  : 2;
+    unsigned int chan9  : 2;
+    unsigned int chan10 : 2;
+    unsigned int chan11 : 2;
+    unsigned int chan12 : 2;
+    unsigned int chan13 : 2;
+    unsigned int chan14 : 2;
+    unsigned int chan15 : 2;
+} PACKED crsf_elrs_channels_DB_t;
+
+
 /**
  * Define the shape of a standard packet
  * A 'standard' header followed by the packed channels
@@ -186,7 +218,10 @@ typedef struct crsf_channels_s
 typedef struct rcPacket_s
 {
     crsf_header_t header;
+    union {
     crsf_channels_s channels;
+    crsf_elrs_channels_DB_t channelsDB;
+    };
 } PACKED rcPacket_t;
 
 /**
@@ -402,6 +437,8 @@ public:
 
     static bool ICACHE_RAM_ATTR ProcessPacket();
     static void ICACHE_RAM_ATTR GetChannelDataIn();
+    static void ICACHE_RAM_ATTR GetChannelDataInDB();
+
     static void ICACHE_RAM_ATTR updateSwitchValues();
     static void inline nullCallback(void);
 
